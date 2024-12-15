@@ -22,11 +22,14 @@ import net.somewhatcity.mixer.core.listener.RedstoneListener;
 import net.somewhatcity.mixer.core.util.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
+import java.util.logging.Level;
 
 public class MixerPlugin extends JavaPlugin {
     private static MixerPlugin plugin;
@@ -43,6 +46,15 @@ public class MixerPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
+
+        FileConfiguration config = getConfig();
+
+        config.addDefault("mixer.youtube.enabled", false);
+        config.addDefault("mixer.youtube.useOAuth", false);
+        config.addDefault("mixer.youtube.refreshToken", "");
+
+        config.options().copyDefaults(true);
+        saveConfig();
 
         new Metrics(this,19824);
         CommandAPI.onEnable();
@@ -66,6 +78,8 @@ public class MixerPlugin extends JavaPlugin {
 
         this.api = new ImplMixerApi(this);
         Bukkit.getServicesManager().register(MixerApi.class, api, this, ServicePriority.Normal);
+
+
     }
 
     @Override

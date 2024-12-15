@@ -40,6 +40,7 @@ import dev.lavalink.youtube.clients.*;
 import dev.lavalink.youtube.clients.skeleton.Client;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.somewhatcity.mixer.core.audio.IMixerAudioPlayer;
 import net.somewhatcity.mixer.core.commands.dsp.DspCommand;
 import net.somewhatcity.mixer.core.MixerPlugin;
 import net.somewhatcity.mixer.core.util.MessageUtil;
@@ -60,28 +61,6 @@ public class MixerCommand extends CommandAPICommand {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
-    private static final AudioPlayerManager APM = new DefaultAudioPlayerManager();
-
-    static {
-        YoutubeAudioSourceManager youtube = new YoutubeAudioSourceManager(true, new Client[] {
-                new MusicWithThumbnail(),
-                new WebWithThumbnail(),
-                new AndroidLiteWithThumbnail()
-        });
-        APM.registerSourceManager(youtube);
-        APM.registerSourceManager(new YandexMusicAudioSourceManager(true));
-        APM.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
-        APM.registerSourceManager(new BandcampAudioSourceManager());
-        APM.registerSourceManager(new VimeoAudioSourceManager());
-        APM.registerSourceManager(new TwitchStreamAudioSourceManager());
-        APM.registerSourceManager(new BeamAudioSourceManager());
-        APM.registerSourceManager(new GetyarnAudioSourceManager());
-        APM.registerSourceManager(new NicoAudioSourceManager());
-        APM.registerSourceManager(new HttpAudioSourceManager());
-        APM.registerSourceManager(new LocalAudioSourceManager());
-
-        APM.setFrameBufferDuration(100);
-    }
 
     public MixerCommand() {
         super("mixer");
@@ -119,19 +98,11 @@ public class MixerCommand extends CommandAPICommand {
                                 return;
                             }
                         }
-                        else if (url.startsWith("https://www.youtube.com/") || url.startsWith("https://music.youtube.com/")) {
-                            oldUrl = url;
-                            url = Utils.requestCobaltMediaUrl(url);
-                            if(url == null) {
-                                player.sendMessage("§cError while loading cobalt media");
-                                return;
-                            }
-                        }
                         else {
                             oldUrl = "";
                         }
                         String finalUrl = url;
-                        APM.loadItem(url, new AudioLoadResultHandler() {
+                        IMixerAudioPlayer.APM.loadItem(url, new AudioLoadResultHandler() {
 
                             @Override
                             public void trackLoaded(AudioTrack audioTrack) {
@@ -236,6 +207,7 @@ public class MixerCommand extends CommandAPICommand {
 
                     linked.add(locData);
                     jukebox.getPersistentDataContainer().set(mixerLinks, PersistentDataType.STRING, linked.toString());
+                    jukebox.update();
 
                     MessageUtil.sendMsg(player, "Location linked to jukebox");
                 })
@@ -283,6 +255,7 @@ public class MixerCommand extends CommandAPICommand {
 
                     redstones.add(locData);
                     jukebox.getPersistentDataContainer().set(mixerRedstones, PersistentDataType.STRING, redstones.toString());
+                    jukebox.update();
 
                     MessageUtil.sendMsg(player, "Redstone location linked to jukebox");
                 }))

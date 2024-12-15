@@ -54,6 +54,7 @@ public class Utils {
         NamespacedKey key = new NamespacedKey(MixerPlugin.getPlugin(), category);
 
         jukebox.getPersistentDataContainer().set(key, PersistentDataType.STRING, data.toString());
+        jukebox.update();
     }
 
     public static byte[] shortToByte(short[] input) {

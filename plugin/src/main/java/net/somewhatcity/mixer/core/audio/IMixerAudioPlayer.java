@@ -46,9 +46,7 @@ import de.maxhenkel.opus4j.UnknownPlatformException;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.audiochannel.LocationalAudioChannel;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
-import dev.lavalink.youtube.clients.AndroidLiteWithThumbnail;
-import dev.lavalink.youtube.clients.MusicWithThumbnail;
-import dev.lavalink.youtube.clients.WebWithThumbnail;
+import dev.lavalink.youtube.clients.*;
 import dev.lavalink.youtube.clients.skeleton.Client;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.somewhatcity.mixer.api.MixerAudioPlayer;
@@ -60,6 +58,7 @@ import net.somewhatcity.mixer.core.util.Utils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Jukebox;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.persistence.PersistentDataType;
 
 import javax.sound.sampled.AudioFormat;
@@ -71,7 +70,7 @@ import java.util.concurrent.Executors;
 public class IMixerAudioPlayer implements MixerAudioPlayer {
     private static final AudioFormat AUDIO_FORMAT = new AudioFormat(48000, 16, 1, true, true);
     private static final VoicechatServerApi API = (VoicechatServerApi) MixerVoicechatPlugin.api;
-    private static final AudioPlayerManager APM = new DefaultAudioPlayerManager();
+    public static final AudioPlayerManager APM = new DefaultAudioPlayerManager();
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
 
     private Location location;
@@ -94,12 +93,34 @@ public class IMixerAudioPlayer implements MixerAudioPlayer {
     private JsonObject dspSettings;
 
     static {
-        YoutubeAudioSourceManager youtube = new YoutubeAudioSourceManager(true, new Client[] {
-                new MusicWithThumbnail(),
-                new WebWithThumbnail(),
-                new AndroidLiteWithThumbnail()
-        });
-        APM.registerSourceManager(youtube);
+        FileConfiguration config = MixerPlugin.getPlugin().getConfig();
+
+        if(config.getBoolean("mixer.youtube.enabled")) {
+            YoutubeAudioSourceManager youtube = new YoutubeAudioSourceManager(true, new Client[] {
+                    new Music(),
+                    new Web(),
+                    new MusicWithThumbnail(),
+                    new WebWithThumbnail(),
+                    new TvHtml5Embedded(),
+                    new TvHtml5EmbeddedWithThumbnail(),
+                    new Android(),
+                    new AndroidMusic()
+            });
+
+            if(config.getBoolean("mixer.youtube.useOAuth")) {
+                String refreshToken = config.getString("mixer.youtube.refreshToken");
+
+                if(refreshToken == null || refreshToken.isEmpty()) {
+                    youtube.useOauth2(null, false);
+                } else {
+                    youtube.useOauth2(refreshToken, true);
+                }
+            }
+
+            APM.registerSourceManager(youtube);
+        }
+
+
         APM.registerSourceManager(new YandexMusicAudioSourceManager(true));
         APM.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         APM.registerSourceManager(new BandcampAudioSourceManager());
@@ -258,6 +279,13 @@ public class IMixerAudioPlayer implements MixerAudioPlayer {
 
         MixerPlugin.getPlugin().playerHashMap().remove(location);
 
+        FileConfiguration config = MixerPlugin.getPlugin().getConfig();
+
+        String identifier = "mixers.mixer_%s%s%s".formatted(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        if(config.contains(identifier)) config.set(identifier, null);
+
+        MixerPlugin.getPlugin().saveConfig();
+
         try {
             if(jvmAudioInputStream != null) jvmAudioInputStream.close();
         } catch (IOException e) {
@@ -277,6 +305,7 @@ public class IMixerAudioPlayer implements MixerAudioPlayer {
         if(audioUrl == null || audioUrl.isEmpty()) return;
         final String[] url = {audioUrl};
         EXECUTOR_SERVICE.submit(() -> {
+            /*
             if(url[0].startsWith("cobalt:")) {
                 url[0] = url[0].replace("cobalt:", "");
                 url[0] = Utils.requestCobaltMediaUrl(url[0]);
@@ -290,9 +319,21 @@ public class IMixerAudioPlayer implements MixerAudioPlayer {
                 url[0] = Utils.requestCobaltMediaUrl(url[0]);
             }
 
+             */
+
             APM.loadItem(url[0], new AudioLoadResultHandler() {
                 @Override
                 public void trackLoaded(AudioTrack audioTrack) {
+                    if(audioTrack.getInfo().isStream) {
+                        FileConfiguration config = MixerPlugin.getPlugin().getConfig();
+
+                        String identifier = "mixers.mixer_%s%s%s".formatted(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+                        config.set(identifier + ".uri", audioTrack.getInfo().uri);
+                        config.set(identifier + ".location", location);
+
+                        MixerPlugin.getPlugin().saveConfig();
+                    }
+
                     playlist.add(audioTrack);
                     if(!playbackStarted) {
                         loadDsp();

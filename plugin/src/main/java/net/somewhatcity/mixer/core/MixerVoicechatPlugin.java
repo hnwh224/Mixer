@@ -16,6 +16,10 @@ import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.VolumeCategory;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
+import net.somewhatcity.mixer.core.audio.IMixerAudioPlayer;
+import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 
 public class MixerVoicechatPlugin implements VoicechatPlugin {
 
@@ -46,5 +50,19 @@ public class MixerVoicechatPlugin implements VoicechatPlugin {
                 .build();
 
         api.registerVolumeCategory(mixer);
+
+        FileConfiguration config = MixerPlugin.getPlugin().getConfig();
+        ConfigurationSection section = config.getConfigurationSection("mixers");
+        if(section != null) {
+            for(String key : section.getKeys(false)) {
+                String uri = config.getString("mixers." + key + ".uri");
+                Location location = config.getLocation("mixers." + key + ".location");
+
+                if(uri == null || location == null) continue;
+
+                IMixerAudioPlayer audioPlayer = new IMixerAudioPlayer(location);
+                audioPlayer.load(uri);
+            }
+        }
     }
 }
