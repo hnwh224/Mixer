@@ -35,10 +35,35 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
-    # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
-    # the publishing section of your build.gradle
-    - name: Publish to GitHub Packages
-      run: ./gradlew publish
+    - name: Extract version from build.gradle
+      id: get_version
+      run: |
+        VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
+        echo "version=$VERSION" >> $GITHUB_ENV
+
+    - name: Create Draft Release
+      id: create_release
+      uses: actions/create-release@v1
       env:
-        USERNAME: ${{ github.actor }}
-        TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.version }}
+        release_name: Release v${{ env.version }}
+        draft: true
+        prerelease: false
+
+    - uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./build/libs/Mixer-${{ env.version }}-all.jar
+        asset_name: Mixer-${{ env.version }}-all.jar
+        asset_content_type: application/java-archive
+
+    - name: Publish Release
+      uses: eregon/publish-release@v1.0.6
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
