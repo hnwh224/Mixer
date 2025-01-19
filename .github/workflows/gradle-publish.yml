@@ -5,7 +5,7 @@
 # This workflow will build a package using Gradle and then publish it to GitHub packages when a release is created
 # For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#Publishing-using-gradle
 
-name: Gradle Package
+name: build
 
 on:
   [push, pull_request, workflow_dispatch]
@@ -43,9 +43,27 @@ jobs:
         VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
         echo "version=$VERSION" >> $GITHUB_ENV
 
-    - name: Release
-      uses: softprops/action-gh-release@v2
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: Mixer v${{ env.version }}
-        tag_name: v${{ env.version }}
-        files: ./build/libs/Mixer-${{ env.version }}-all.jar
+        name: Artifacts
+        path: build/libs/
+
+
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Artifacts
+          path: build/libs/
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Mixer v${{ env.version }}
+          tag_name: v${{ env.version }}
+          generate_release_notes: true
+          files: build/libs/*
