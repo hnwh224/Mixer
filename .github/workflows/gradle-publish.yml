@@ -34,6 +34,17 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
+    - name: Gradle & Maven Version Bump
+      uses: Plugily-Projects/version-bump-action@v9
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        git-committer: 'BOT'
+        auto-version-bump: true
+
+    - name: Print Version
+      id: bump
+      run: "echo 'New Version: ${{steps.bump.outputs.version}}'"
+
     - name: Build with Gradle
       run: ./gradlew build
 
@@ -42,6 +53,7 @@ jobs:
       run: |
         VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
         echo "version=$VERSION" >> $GITHUB_ENV
+        echo "::set-output name=version::$VERSION"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -49,6 +61,8 @@ jobs:
         name: Artifacts
         path: build/libs/
 
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
 
 
   release:
@@ -63,7 +77,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: Mixer v${{ env.version }}
-          tag_name: v${{ env.version }}
+          name: Mixer v${{ needs.build.outputs.version }}
+          tag_name: v${{ needs.build.outputs.version }}
           generate_release_notes: true
           files: build/libs/*
