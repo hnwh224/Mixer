@@ -8,8 +8,10 @@
 name: Gradle Package
 
 on:
-  release:
-    types: [created]
+  [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: write
 
 jobs:
   build:
