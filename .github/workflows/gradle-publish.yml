@@ -46,4 +46,6 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
+        name: Mixer v${{ env.version }}
+        tag_name: v${{ env.version }}
         files: ./build/libs/Mixer-${{ env.version }}-all.jar
