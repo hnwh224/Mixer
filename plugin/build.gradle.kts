@@ -52,6 +52,10 @@ tasks {
             exclude(dependency("de.maxhenkel.voicechat:voicechat-api:2.4.11"))
         }
     }
+
+    assemble {
+        dependsOn(shadowJar)
+    }
 }
 
 bukkit {
