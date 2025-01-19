@@ -66,7 +66,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: Mixer v${{ needs.build.outputs.version }}
+          name: Mixer-v${{ needs.build.outputs.version }}-SNAPSHOT-${{ github.run_number }}
           tag_name: v${{ needs.build.outputs.version }}
           generate_release_notes: true
           files: build/libs/*
